@@ -68,10 +68,11 @@ assertExists(String name, FileSystemEntity entity) {
 }
 
 /// Assert that the given pub list result does not indicate an error
-void assertNoPubListError(Map<String, String> pubResult) {
+void assertNoPubListError(Map<String, dynamic> pubResult) {
   var error = pubResult['error'];
   if (error == null) {
     var packages = pubResult['packages'];
+    print(packages);
     if (packages != null) {
       var rpiGpio = packages[rpiGpioPkgName];
       if (rpiGpio != null) {

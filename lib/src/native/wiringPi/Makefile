@@ -39,9 +39,10 @@ DEBUG	= -O2
 CC	= gcc
 INCLUDE	= -I.
 DEFS	= -D_GNU_SOURCE
-CFLAGS	= $(DEBUG) $(DEFS) -Wformat=2 -Wall -Winline $(INCLUDE) -pipe -fPIC
+CFLAGS	= $(DEBUG) $(DEFS) -Wformat=2 -Wall -Wextra -Winline $(INCLUDE) -pipe -fPIC
+#CFLAGS	= $(DEBUG) $(DEFS) -Wformat=2 -Wall -Wextra -Wconversion -Winline $(INCLUDE) -pipe -fPIC
 
-LIBS    =
+LIBS    = -lm -lpthread -lrt -lcrypt
 
 ###############################################################################
 
@@ -55,41 +56,26 @@ SRC	=	wiringPi.c						\
 		sr595.c							\
 		pcf8574.c pcf8591.c					\
 		mcp3002.c mcp3004.c mcp4802.c mcp3422.c			\
-		max31855.c max5322.c					\
+		max31855.c max5322.c ads1115.c				\
 		sn3218.c						\
-		drcSerial.c						\
+		bmp180.c htu21d.c ds18b20.c rht03.c			\
+		drcSerial.c drcNet.c					\
+		pseudoPins.c						\
 		wpiExtensions.c
 
-HEADERS =	wiringPi.h						\
-		wiringSerial.h wiringShift.h				\
-		wiringPiSPI.h wiringPiI2C.h				\
-		softPwm.h softTone.h					\
-		mcp23008.h mcp23016.h mcp23017.h			\
-		mcp23s08.h mcp23s17.h					\
-		sr595.h							\
-		pcf8574.h pcf8591.h					\
-		mcp3002.h mcp3004.h mcp4802.h mcp3422.h			\
-		max31855.h max5322.h					\
-		sn3218.h						\
-		drcSerial.h						\
-		wpiExtensions.h 
-
+HEADERS =	$(shell ls *.h)
 
 OBJ	=	$(SRC:.c=.o)
 
 all:		$(DYNAMIC)
 
-static:		$(STATIC)
-
-$(STATIC):	$(OBJ)
-	$Q echo "[Link (Static)]"
-	$Q ar rcs $(STATIC) $(OBJ)
-	$Q ranlib $(STATIC)
-#	@size   $(STATIC)
+.PHONY:	static
+static:	
+		$Q cat noMoreStatic
 
 $(DYNAMIC):	$(OBJ)
 	$Q echo "[Link (Dynamic)]"
-	$Q $(CC) -shared -Wl,-soname,libwiringPi.so$(WIRINGPI_SONAME_SUFFIX) -o libwiringPi.so.$(VERSION) -lpthread $(OBJ)
+	$Q $(CC) -shared -Wl,-soname,libwiringPi.so$(WIRINGPI_SONAME_SUFFIX) -o libwiringPi.so.$(VERSION) $(LIBS) $(OBJ)
 
 .c.o:
 	$Q echo [Compile] $<
@@ -118,15 +104,6 @@ install:	$(DYNAMIC)
 	$Q ln -sf $(DESTDIR)$(PREFIX)/lib/libwiringPi.so.$(VERSION)	$(DESTDIR)/lib/libwiringPi.so
 	$Q $(LDCONFIG)
 
-.PHONY:	install-static
-install-static:	$(STATIC)
-	$Q echo "[Install Headers]"
-	$Q install -m 0755 -d						$(DESTDIR)$(PREFIX)/include
-	$Q install -m 0644 $(HEADERS)					$(DESTDIR)$(PREFIX)/include
-	$Q echo "[Install Static Lib]"
-	$Q install -m 0755 -d						$(DESTDIR)$(PREFIX)/lib
-	$Q install -m 0755 libwiringPi.a					$(DESTDIR)$(PREFIX)/lib
-
 .PHONY:	install-deb
 install-deb:	$(DYNAMIC)
 	$Q echo "[Install Headers: deb]"
@@ -151,7 +128,7 @@ depend:
 
 # DO NOT DELETE
 
-wiringPi.o: softPwm.h softTone.h wiringPi.h
+wiringPi.o: softPwm.h softTone.h wiringPi.h ../version.h
 wiringSerial.o: wiringSerial.h
 wiringShift.o: wiringPi.h wiringShift.h
 piHiPri.o: wiringPi.h
@@ -174,9 +151,15 @@ mcp4802.o: wiringPi.h wiringPiSPI.h mcp4802.h
 mcp3422.o: wiringPi.h wiringPiI2C.h mcp3422.h
 max31855.o: wiringPi.h wiringPiSPI.h max31855.h
 max5322.o: wiringPi.h wiringPiSPI.h max5322.h
+ads1115.o: wiringPi.h wiringPiI2C.h ads1115.h
 sn3218.o: wiringPi.h wiringPiI2C.h sn3218.h
+bmp180.o: wiringPi.h wiringPiI2C.h bmp180.h
+htu21d.o: wiringPi.h wiringPiI2C.h htu21d.h
+ds18b20.o: wiringPi.h ds18b20.h
 drcSerial.o: wiringPi.h wiringSerial.h drcSerial.h
+pseudoPins.o: wiringPi.h pseudoPins.h
 wpiExtensions.o: wiringPi.h mcp23008.h mcp23016.h mcp23017.h mcp23s08.h
 wpiExtensions.o: mcp23s17.h sr595.h pcf8574.h pcf8591.h mcp3002.h mcp3004.h
-wpiExtensions.o: mcp4802.h mcp3422.h max31855.h max5322.h sn3218.h
-wpiExtensions.o: drcSerial.h wpiExtensions.h
+wpiExtensions.o: mcp4802.h mcp3422.h max31855.h max5322.h ads1115.h sn3218.h
+wpiExtensions.o: drcSerial.h pseudoPins.h bmp180.h htu21d.h ds18b20.h
+wpiExtensions.o: wpiExtensions.h
